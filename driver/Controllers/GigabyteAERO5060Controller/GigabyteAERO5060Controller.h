@@ -13,5 +13,5 @@ public:
 
 private:
     i2c_smbus_interface* bus;
-    static constexpr uint8_t RGB_ADDRESS = 0x40;
+    static constexpr uint8_t RGB_ADDRESS = 0x75;
 };
