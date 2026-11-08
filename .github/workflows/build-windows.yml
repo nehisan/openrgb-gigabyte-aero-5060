@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: CalcProgrammer1/OpenRGB
-          ref: release_1.1
+          ref: 8e16de27858cf2be6af54a33ce003df74cb9fd3e
           path: openrgb
           submodules: recursive
 
@@ -84,6 +84,22 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Copy-Item "$env:QT_ROOT_DIR\bin\Qt6Core5Compat.dll" ".\release\" -ErrorAction SilentlyContinue
           Copy-Item "$env:QT_ROOT_DIR\bin\Qt6OpenGL.dll" ".\release\" -ErrorAction SilentlyContinue
+
+      - name: Package corresponding GPL source
+        shell: pwsh
+        run: |
+          tar -a -c -f "OpenRGB-1.1-AERO-RTX5060-source.zip" --exclude=.git --exclude=release -C openrgb .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload corresponding source
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenRGB-1.1-AERO-RTX5060-source
+          path: |
+            OpenRGB-1.1-AERO-RTX5060-source.zip
+            LICENSE
+            THIRD_PARTY_NOTICES.md
+          if-no-files-found: error
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
