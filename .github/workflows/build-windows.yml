@@ -93,7 +93,7 @@ jobs:
           if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
           $global:LASTEXITCODE = 0
 
-      - name: Configure and compile OpenRGB Effects Plugin
+      - name: Configure OpenRGB Effects Plugin
         shell: cmd
         run: |
           if not exist effects-plugin\OpenRGBEffectsPlugin.pro exit /b 1
@@ -105,6 +105,28 @@ jobs:
           if not exist .obj mkdir .obj
           if not exist .ui mkdir .ui
           if not exist .qrc mkdir .qrc
+
+      - name: Diagnose Qt MOC rule
+        shell: pwsh
+        working-directory: effects-plugin-build
+        run: |
+          Write-Host "=== MOC executables on PATH ==="
+          Get-Command moc -All | Format-List Source,CommandType,Definition
+          where.exe moc
+          Write-Host "=== Generated Makefile rule ==="
+          Select-String -Path Makefile -Pattern 'moc_QStyleSyntaxHighlighter.cpp' -Context 5,5 | ForEach-Object {
+            $_.Context.PreContext
+            $_.Line
+            $_.Context.PostContext
+          }
+          Write-Host "=== Qt MOC executable ==="
+          Write-Host "$env:QT_ROOT_DIR\bin\moc.exe"
+          if (-not (Test-Path "$env:QT_ROOT_DIR\bin\moc.exe")) { throw "Qt moc.exe missing" }
+
+      - name: Compile OpenRGB Effects Plugin
+        shell: cmd
+        run: |
+          cd effects-plugin-build
           nmake
           if errorlevel 1 exit /b %errorlevel%
           if not exist release\OpenRGBEffectsPlugin.dll exit /b 1
