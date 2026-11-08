@@ -3,7 +3,7 @@ name: Build OpenRGB 1.1 with AERO RTX 5060 driver
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ main, feature/build-effects-plugin-api5 ]
 
 jobs:
   windows-x64:
