@@ -1,38 +1,60 @@
-# OpenRGB Gigabyte AERO RTX 5060
+# OpenRGB — Gigabyte GeForce RTX 5060 AERO
 
-Experimental support notes for the Gigabyte GeForce RTX 5060 AERO.
+Personal, experimental hardware support for the **Gigabyte GeForce RTX 5060 AERO** in a standalone Windows build of OpenRGB 1.1.
 
-## Hardware identifiers
+This is an independent project. It is not an official OpenRGB release and is not endorsed by the OpenRGB project.
 
-- PCI vendor/device: `10DE:2D05` (NVIDIA RTX 5060)
-- PCI subsystem vendor/device: `1458:41A0` (Gigabyte AERO)
-- SignalRGB model key: `RTX5060_AERO`
+## Hardware tested
 
-## Protocol extracted from the supplied SignalRGB module
+| Item | Value |
+|---|---|
+| GPU | Gigabyte GeForce RTX 5060 AERO |
+| NVIDIA PCI device ID | `10DE:2D05` |
+| Gigabyte subsystem ID | `1458:41A0` |
+| RGB controller | NVIDIA NvAPI I²C |
+| RGB I²C address | `0x75` |
+| Exposed lighting zone | `Side logo` |
 
-The module identifies the GPU using all four PCI identifiers. It scans the NVIDIA I2C bus at address `0x75`, then sends lighting frames to address `0x40`. These are distinct addresses.
+The controller exposes one LED and one zone. It does not send writes for additional, unused zones.
 
-- Discovery address: `0x75`
-- RGB write address: `0x40`
-- AERO header: `16 01 00 06 00`
-- One exposed zone: `Side logo`
-- Zone index: `0`
-- Frame format (10 bytes): `16 01 00 06 00 R G B 00 00`
+## Working RGB protocol
 
-The SignalRGB `WriteRGB` function sends the five-byte AERO header followed by one RGB triplet, `0x00`, and the zone index. For this single-zone model, the zone index is zero.
+The known-good implementation follows the 64-byte Gigabyte Blackwell RGB Fusion frame used by the native OpenRGB controller for the RTX 5060 Ti AERO family, adapted and tested on the RTX 5060 AERO.
 
-**Do not send generic empty-zone frames for zones 1–5.** They use a different header and are not part of the AERO model's actual zone map.
+- I²C write address: `0x75`
+- Frame size: **64 bytes**
+- Register/command: `0x16` (direct color)
+- Mode: direct (`0x00`)
+- Speed: `0x06`
+- Brightness: `0x0A`
+- RGB values: bytes 5–7
+- Zone index: byte 9, value `0x00`
+- Only zone 0 is written.
 
-## OpenRGB implementation requirements
+The controller uses the normal NvAPI I²C port configuration (`is_ddc_port = 0`). No DDC-mode workaround is required.
 
-OpenRGB has an existing Gigabyte Blackwell controller, but its 64-byte RGB Fusion packet format differs from this AERO-specific 10-byte SignalRGB frame. Reusing it unchanged would be incorrect.
+## Build
 
-1. Register the exact PCI/subsystem ID pair above on the NVIDIA I2C bus.
-2. Preserve the discovery/write address distinction (`0x75` vs `0x40`).
-3. Expose exactly one LED and one zone named `Side logo`.
-4. Send only the documented 10-byte frame for direct/static color updates.
-5. Keep detection read-only; it must not change lighting.
+The repository contains a GitHub Actions workflow that checks out OpenRGB's `release_1.1` source, copies in this controller, and builds a Windows x64 release.
 
-## Status and safety
+1. Open the **Actions** tab in this repository.
+2. Select **Build OpenRGB 1.1 with AERO RTX 5060 driver**.
+3. Run the workflow (or push a change to `main`).
+4. Download the `OpenRGB-1.1-AERO-RTX5060-Windows-x64` artifact from the completed run.
 
-These protocol details are extracted from the supplied SignalRGB source and have not been independently validated on the physical GPU. Hardware writes remain unverified. Do not test while RGB Fusion or another SMBus controller is running. The first hardware test should be one static-color write after confirming the selected NVIDIA I2C bus and target address.
+The artifact is a standalone OpenRGB build with the AERO controller integrated; it is not a separately installable controller DLL.
+
+## Known-good build
+
+Build #8 was successfully tested on the target Gigabyte RTX 5060 AERO:
+
+[GitHub Actions run #8 — successful hardware-tested build](https://github.com/nehisan/openrgb-gigabyte-aero-5060/actions/runs/42492363818)
+
+Keep this build as the known-good version when experimenting with future changes.
+
+## Scope and cautions
+
+- This project currently targets the Gigabyte RTX 5060 AERO identified above. Other GPU variants are not confirmed.
+- The protocol description reflects the implementation validated on the physical card; do not replace it with the older 10-byte experimental frame.
+- Avoid running multiple RGB/I²C control applications against the GPU at the same time.
+- Changes to the controller should be tested in a separate workflow run before replacing the known-good build.
