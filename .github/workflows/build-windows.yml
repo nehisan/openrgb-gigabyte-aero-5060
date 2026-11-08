@@ -25,6 +25,33 @@ jobs:
         run: |
           Copy-Item -Recurse -Force "driver/Controllers/GigabyteAERO5060Controller" "openrgb/Controllers/"
 
+      - name: Instrument NVIDIA NvAPI I2C write failures
+        shell: pwsh
+        working-directory: openrgb
+        run: |
+          $file = "i2c_smbus/Windows/i2c_smbus_nvapi.cpp"
+          $source = Get-Content $file -Raw
+          $source = $source.Replace('#include "i2c_smbus_nvapi.h"', '#include "i2c_smbus_nvapi.h"' + "`n" + '#include "LogManager.h"')
+          $old = @'
+          ret = NvAPI_I2CWriteEx(handle, &i2c_data, &unknown);
+          '@
+          $new = @'
+          ret = NvAPI_I2CWriteEx(handle, &i2c_data, &unknown);
+                  if(ret != 0)
+                  {
+                      LOG_ERROR("[NvAPI I2C] NvAPI_I2CWriteEx failed: status=%d (0x%08X), addr7=0x%02X, addr8=0x%02X, size=%u, port=%u, is_ddc=%u, reg_addr_size=%u",
+                                (int)ret, (unsigned int)ret, (unsigned int)addr,
+                                (unsigned int)i2c_data.i2c_dev_address,
+                                (unsigned int)i2c_data.size,
+                                (unsigned int)i2c_data.port_id,
+                                (unsigned int)i2c_data.is_ddc_port,
+                                (unsigned int)i2c_data.reg_addr_size);
+                  }
+          '@
+          if (-not $source.Contains($old)) { throw "NvAPI write call not found; refusing to build without diagnostics." }
+          $source = $source.Replace($old, $new)
+          Set-Content -Path $file -Value $source -NoNewline
+
       - name: Install MSVC environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
