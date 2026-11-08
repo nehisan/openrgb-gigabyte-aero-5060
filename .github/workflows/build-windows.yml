@@ -52,6 +52,23 @@ jobs:
           $source = $source.Replace($old, $new)
           Set-Content -Path $file -Value $source -NoNewline
 
+
+      - name: Experimental NVIDIA DDC-port test
+        shell: pwsh
+        working-directory: openrgb
+        run: |
+          $file = "i2c_smbus/Windows/i2c_smbus_nvapi.cpp"
+          $source = Get-Content $file -Raw
+          $marker = "s32 i2c_smbus_nvapi::i2c_xfer("
+          $start = $source.IndexOf($marker)
+          if ($start -lt 0) { throw "i2c_xfer function not found; refusing experimental patch." }
+          $before = $source.Substring(0, $start)
+          $after = $source.Substring($start)
+          $old = "i2c_data.is_ddc_port = 0;"
+          if (-not $after.Contains($old)) { throw "DDC flag not found in i2c_xfer; refusing experimental patch." }
+          $after = $after.Replace($old, "i2c_data.is_ddc_port = 1;")
+          Set-Content -Path $file -Value ($before + $after) -NoNewline
+
       - name: Install MSVC environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
