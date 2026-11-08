@@ -1,0 +1,65 @@
+name: Build OpenRGB 1.1 with AERO RTX 5060 driver
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    steps:
+      - name: Check out this driver
+        uses: actions/checkout@v4
+
+      - name: Check out OpenRGB 1.1 source
+        uses: actions/checkout@v4
+        with:
+          repository: CalcProgrammer1/OpenRGB
+          ref: release_1.1
+          path: openrgb
+          submodules: recursive
+
+      - name: Add AERO RTX 5060 controller to OpenRGB
+        shell: pwsh
+        run: |
+          Copy-Item -Recurse -Force "driver/Controllers/GigabyteAERO5060Controller" "openrgb/Controllers/"
+
+      - name: Install MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Qt 6.8.3
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.8.3
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          cache: true
+
+      - name: Configure and compile OpenRGB
+        shell: cmd
+        working-directory: openrgb
+        run: |
+          qmake OpenRGB.pro CONFIG-=debug_and_release CONFIG+=release
+          if errorlevel 1 exit /b %errorlevel%
+          nmake
+          if errorlevel 1 exit /b %errorlevel%
+
+      - name: Bundle Qt runtime
+        shell: pwsh
+        working-directory: openrgb
+        run: |
+          windeployqt --no-patchqt --no-quick-import --no-translations --no-system-d3d-compiler --no-compiler-runtime --no-opengl-sw --no-network .\release\
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item "$env:QT_ROOT_DIR\bin\Qt6Core5Compat.dll" ".\release\" -ErrorAction SilentlyContinue
+          Copy-Item "$env:QT_ROOT_DIR\bin\Qt6OpenGL.dll" ".\release\" -ErrorAction SilentlyContinue
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenRGB-1.1-AERO-RTX5060-Windows-x64
+          path: openrgb/release/
+          if-no-files-found: error
