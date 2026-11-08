@@ -83,6 +83,15 @@ jobs:
           nmake
           if errorlevel 1 exit /b %errorlevel%
 
+      - name: Use the exact OpenRGB 1.1 SDK for the Effects Plugin
+        shell: pwsh
+        run: |
+          if (Test-Path "effects-plugin/OpenRGB") { Remove-Item -Recurse -Force "effects-plugin/OpenRGB" }
+          New-Item -ItemType Directory -Force "effects-plugin/OpenRGB" | Out-Null
+          robocopy "openrgb" "effects-plugin/OpenRGB" /E /XD ".git" "release"
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
+          $global:LASTEXITCODE = 0
+
       - name: Configure and compile OpenRGB Effects Plugin
         shell: cmd
         run: |
@@ -111,7 +120,7 @@ jobs:
         run: |
           tar -a -c -f "OpenRGB-1.1-AERO-RTX5060-source.zip" --exclude=.git --exclude=release -C openrgb .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          tar -a -c -f "OpenRGBEffectsPlugin-1.1-source.zip" --exclude=.git --exclude=release -C effects-plugin .
+          tar -a -c -f "OpenRGBEffectsPlugin-1.1-source.zip" --exclude=.git --exclude=release --exclude=OpenRGB -C effects-plugin .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload corresponding source
