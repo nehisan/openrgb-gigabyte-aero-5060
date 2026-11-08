@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: CalcProgrammer1/OpenRGB
-          ref: release_1.1
+          ref: 8e16de27858cf2be6af54a33ce003df74cb9fd3e
           path: openrgb
           submodules: recursive
 
