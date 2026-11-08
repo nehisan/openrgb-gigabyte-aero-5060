@@ -99,7 +99,7 @@ jobs:
           if not exist effects-plugin\OpenRGBEffectsPlugin.pro exit /b 1
           mkdir effects-plugin-build
           cd effects-plugin-build
-          qmake ..\effects-plugin\OpenRGBEffectsPlugin.pro CONFIG-=debug_and_release CONFIG+=release "MOC_DIR=%CD%\\.moc" "OBJECTS_DIR=%CD%\\.obj" "UI_DIR=%CD%\\.ui" "RCC_DIR=%CD%\\.qrc"
+          qmake ..\effects-plugin\OpenRGBEffectsPlugin.pro CONFIG-=debug_and_release CONFIG+=release -after "MOC_DIR=%CD%\.moc" "OBJECTS_DIR=%CD%\.obj" "UI_DIR=%CD%\.ui" "RCC_DIR=%CD%\.qrc"
           if errorlevel 1 exit /b %errorlevel%
           if not exist .moc mkdir .moc
           if not exist .obj mkdir .obj
