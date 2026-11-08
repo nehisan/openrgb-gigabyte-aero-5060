@@ -65,6 +65,7 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2022_64
+          modules: qt5compat
           cache: true
 
       - name: Check out OpenRGB Effects Plugin 1.1 (Plugin API 5)
