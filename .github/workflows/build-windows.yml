@@ -101,6 +101,10 @@ jobs:
           cd effects-plugin-build
           qmake ..\effects-plugin\OpenRGBEffectsPlugin.pro CONFIG-=debug_and_release CONFIG+=release
           if errorlevel 1 exit /b %errorlevel%
+          if not exist _intermediate_release\.moc mkdir _intermediate_release\.moc
+          if not exist _intermediate_release\.obj mkdir _intermediate_release\.obj
+          if not exist _intermediate_release\.ui mkdir _intermediate_release\.ui
+          if not exist _intermediate_release\.qrc mkdir _intermediate_release\.qrc
           nmake
           if errorlevel 1 exit /b %errorlevel%
           if not exist release\OpenRGBEffectsPlugin.dll exit /b 1
