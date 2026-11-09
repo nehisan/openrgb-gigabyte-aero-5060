@@ -93,6 +93,18 @@ jobs:
           if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
           $global:LASTEXITCODE = 0
 
+      - name: Normalize plugin build metadata for MSVC
+        shell: pwsh
+        run: |
+          $project = "effects-plugin/OpenRGBEffectsPlugin.pro"
+          $source = Get-Content $project -Raw
+          $source = $source.Replace('win32:BUILDDATE = $system(date /t)', 'win32:BUILDDATE = $system(powershell -NoProfile -Command "Get-Date -Format yyyyMMdd")')
+          $source = $source.Replace('GIT_COMMIT_DATE = $system(git --git-dir $_PRO_FILE_PWD_/.git --work-tree $_PRO_FILE_PWD_ show -s --format=%ci HEAD)', 'GIT_COMMIT_DATE = $system(git --git-dir $_PRO_FILE_PWD_/.git --work-tree $_PRO_FILE_PWD_ show -s --format=%cs HEAD)')
+          if ($source -notmatch 'Get-Date -Format yyyyMMdd' -or $source -notmatch '--format=%cs HEAD') {
+            throw "Could not normalize the space-containing build metadata in OpenRGBEffectsPlugin.pro"
+          }
+          Set-Content -Path $project -Value $source -NoNewline
+
       - name: Configure OpenRGB Effects Plugin
         shell: cmd
         run: |
