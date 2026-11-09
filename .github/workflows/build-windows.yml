@@ -102,8 +102,8 @@ jobs:
           $source = [regex]::Replace($source, '(?m)^win32:BUILDDATE\s*=.*$', 'win32:BUILDDATE = 20261109')
           $source = [regex]::Replace($source, '(?m)^GIT_COMMIT_DATE\s*=.*$', 'GIT_COMMIT_DATE = 2026-10-16')
           $source = $source.Replace('job=Windows 64', 'job=Windows%2064')
-          if ($source -match '(?m)^win32:BUILDDATE\s*=.*\s' -or $source -match '(?m)^GIT_COMMIT_DATE\s*=.*\s') {
-            throw "Plugin build metadata still contains whitespace"
+          if (-not $source.Contains('win32:BUILDDATE = 20261109') -or -not $source.Contains('GIT_COMMIT_DATE = 2026-10-16')) {
+            throw "Plugin build metadata normalization did not apply"
           }
           Set-Content -Path $project -Value $source -NoNewline
 
