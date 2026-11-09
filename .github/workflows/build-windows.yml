@@ -123,6 +123,25 @@ jobs:
           Write-Host "$env:QT_ROOT_DIR\bin\moc.exe"
           if (-not (Test-Path "$env:QT_ROOT_DIR\bin\moc.exe")) { throw "Qt moc.exe missing" }
 
+      - name: Isolate failing Qt MOC input
+        shell: pwsh
+        working-directory: effects-plugin-build
+        run: |
+          $header = "..\effects-plugin\Dependencies\QCodeEditor\include\internal\QStyleSyntaxHighlighter.hpp"
+          if (-not (Test-Path $header)) { throw "MOC input header missing: $header" }
+          Write-Host "=== Header metadata ==="
+          Get-Item $header | Format-List FullName,Length,LastWriteTime
+          Write-Host "=== Run Qt MOC without inherited MSVC include paths ==="
+          $env:INCLUDE = ""
+          $env:CL = ""
+          $env:_CL_ = ""
+          & "$env:QT_ROOT_DIR\bin\moc.exe" --compiler-flavor=msvc --include "$((Get-Location).Path)\moc_predefs.h" -I"$env:QT_ROOT_DIR\mkspecs\win32-msvc" -I"..\effects-plugin" -I"..\effects-plugin\Dependencies\QCodeEditor\include" -I"..\effects-plugin\Dependencies\QCodeEditor\include\internal" $header -o moc_QStyleSyntaxHighlighter_probe.cpp
+          $code = $LASTEXITCODE
+          Write-Host "MOC exit code: $code"
+          Write-Host "Generated file exists: $(Test-Path moc_QStyleSyntaxHighlighter_probe.cpp)"
+          if (Test-Path moc_QStyleSyntaxHighlighter_probe.cpp) { Get-Item moc_QStyleSyntaxHighlighter_probe.cpp | Format-List FullName,Length }
+          if ($code -ne 0 -or -not (Test-Path moc_QStyleSyntaxHighlighter_probe.cpp)) { throw "Isolated Qt MOC test failed" }
+
       - name: Compile OpenRGB Effects Plugin
         shell: cmd
         run: |
