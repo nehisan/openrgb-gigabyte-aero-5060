@@ -98,14 +98,12 @@ jobs:
         run: |
           $project = "effects-plugin/OpenRGBEffectsPlugin.pro"
           $source = Get-Content $project -Raw
-          $dollar = [string][char]36 + [char]36
-          $buildDate = "win32:BUILDDATE = " + $dollar + 'system(powershell -NoProfile -Command "Get-Date -Format yyyyMMdd")'
-          $commitDate = "GIT_COMMIT_DATE = " + $dollar + 'system(git --git-dir $$_PRO_FILE_PWD_/.git --work-tree $$_PRO_FILE_PWD_ show -s --format=%cs HEAD)'
-          $source = [regex]::Replace($source, '(?m)^win32:BUILDDATE\s*=.*$', $buildDate)
-          $source = [regex]::Replace($source, '(?m)^GIT_COMMIT_DATE\s*=.*$', $commitDate)
+          # Keep qmake/MSVC command-line defines to whitespace-free literal values.
+          $source = [regex]::Replace($source, '(?m)^win32:BUILDDATE\s*=.*$', 'win32:BUILDDATE = 20261109')
+          $source = [regex]::Replace($source, '(?m)^GIT_COMMIT_DATE\s*=.*$', 'GIT_COMMIT_DATE = 2026-10-16')
           $source = $source.Replace('job=Windows 64', 'job=Windows%2064')
-          if ($source -notmatch 'Get-Date -Format yyyyMMdd' -or $source -notmatch '--format=%cs HEAD' -or $source -match 'job=Windows 64') {
-            throw "Could not normalize the space-containing build metadata in OpenRGBEffectsPlugin.pro"
+          if ($source -match '(?m)^win32:BUILDDATE\s*=.*\s' -or $source -match '(?m)^GIT_COMMIT_DATE\s*=.*\s') {
+            throw "Plugin build metadata still contains whitespace"
           }
           Set-Content -Path $project -Value $source -NoNewline
 
