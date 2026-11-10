@@ -102,8 +102,15 @@ jobs:
           $source = [regex]::Replace($source, '(?m)^win32:BUILDDATE\s*=.*$', 'win32:BUILDDATE = 20261109')
           $source = [regex]::Replace($source, '(?m)^GIT_COMMIT_DATE\s*=.*$', 'GIT_COMMIT_DATE = 2026-10-16')
           $source = $source.Replace('job=Windows 64', 'job=Windows%2064')
+          # MOC receives these DEFINES as command-line arguments. Keep values with
+          # spaces out of the generated MSVC/MOC command line.
+          $source = $source.Replace('OpenRGB Effects Plugin', 'OpenRGBEffectsPlugin')
+          $source = $source.Replace('Provides a variety of custom effects', 'Provides_custom_effects')
           if (-not $source.Contains('win32:BUILDDATE = 20261109') -or -not $source.Contains('GIT_COMMIT_DATE = 2026-10-16')) {
             throw "Plugin build metadata normalization did not apply"
+          }
+          if ($source.Contains('OpenRGB Effects Plugin') -or $source.Contains('Provides a variety of custom effects')) {
+            throw "Plugin MOC metadata still contains whitespace-bearing values"
           }
           Set-Content -Path $project -Value $source -NoNewline
 
