@@ -68,13 +68,6 @@ jobs:
           modules: qt5compat
           cache: true
 
-      - name: Check out OpenRGB Effects Plugin 1.1 (Plugin API 5)
-        shell: pwsh
-        run: |
-          git clone --depth 1 --branch release_1.1 --recurse-submodules https://gitlab.com/OpenRGBDevelopers/OpenRGBEffectsPlugin.git effects-plugin
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          git -C effects-plugin rev-parse HEAD
-
       - name: Configure and compile OpenRGB
         shell: cmd
         working-directory: openrgb
@@ -82,59 +75,6 @@ jobs:
           qmake OpenRGB.pro CONFIG-=debug_and_release CONFIG+=release
           if errorlevel 1 exit /b %errorlevel%
           nmake
-          if errorlevel 1 exit /b %errorlevel%
-
-      - name: Use the exact OpenRGB 1.1 SDK for the Effects Plugin
-        shell: pwsh
-        run: |
-          if (Test-Path "effects-plugin/OpenRGB") { Remove-Item -Recurse -Force "effects-plugin/OpenRGB" }
-          New-Item -ItemType Directory -Force "effects-plugin/OpenRGB" | Out-Null
-          robocopy "openrgb" "effects-plugin/OpenRGB" /E /XD ".git" "release"
-          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
-          $global:LASTEXITCODE = 0
-
-      - name: Normalize plugin build metadata for MSVC
-        shell: pwsh
-        run: |
-          $project = "effects-plugin/OpenRGBEffectsPlugin.pro"
-          $source = Get-Content $project -Raw
-          # Keep qmake/MSVC command-line defines to whitespace-free literal values.
-          $source = [regex]::Replace($source, '(?m)^win32:BUILDDATE\s*=.*$', 'win32:BUILDDATE = 20261109')
-          $source = [regex]::Replace($source, '(?m)^GIT_COMMIT_DATE\s*=.*$', 'GIT_COMMIT_DATE = 2026-10-16')
-          $source = $source.Replace('job=Windows 64', 'job=Windows%2064')
-          # MOC receives these DEFINES as command-line arguments. Keep values with
-          # spaces out of the generated MSVC/MOC command line.
-          $source = $source.Replace('OpenRGB Effects Plugin', 'OpenRGBEffectsPlugin')
-          $source = $source.Replace('Provides a variety of custom effects', 'Provides_custom_effects')
-          if (-not $source.Contains('win32:BUILDDATE = 20261109') -or -not $source.Contains('GIT_COMMIT_DATE = 2026-10-16')) {
-            throw "Plugin build metadata normalization did not apply"
-          }
-          if ($source.Contains('OpenRGB Effects Plugin') -or $source.Contains('Provides a variety of custom effects')) {
-            throw "Plugin MOC metadata still contains whitespace-bearing values"
-          }
-          Set-Content -Path $project -Value $source -NoNewline
-
-      - name: Configure OpenRGB Effects Plugin
-        shell: cmd
-        run: |
-          if not exist effects-plugin\OpenRGBEffectsPlugin.pro exit /b 1
-          if not exist effects-plugin-build mkdir effects-plugin-build
-          cd effects-plugin-build
-          qmake ..\effects-plugin\OpenRGBEffectsPlugin.pro CONFIG-=debug_and_release CONFIG+=release
-          if errorlevel 1 exit /b %errorlevel%
-          if not exist _intermediate_release\.moc mkdir _intermediate_release\.moc
-          if not exist _intermediate_release\.obj mkdir _intermediate_release\.obj
-          if not exist _intermediate_release\.ui mkdir _intermediate_release\.ui
-          if not exist _intermediate_release\.qrc mkdir _intermediate_release\.qrc
-
-      - name: Compile OpenRGB Effects Plugin
-        shell: cmd
-        run: |
-          cd effects-plugin-build
-          nmake
-          if errorlevel 1 exit /b %errorlevel%
-          if not exist release\OpenRGBEffectsPlugin.dll exit /b 1
-          copy /Y release\OpenRGBEffectsPlugin.dll ..\openrgb\release\OpenRGBEffectsPlugin.dll
           if errorlevel 1 exit /b %errorlevel%
 
       - name: Bundle Qt runtime
@@ -162,8 +102,6 @@ jobs:
         run: |
           tar -a -c -f "OpenRGB-1.1-AERO-RTX5060-source.zip" --exclude=.git --exclude=release -C openrgb .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          tar -a -c -f "OpenRGBEffectsPlugin-1.1-source.zip" --exclude=.git --exclude=release --exclude=OpenRGB -C effects-plugin .
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload corresponding source
         uses: actions/upload-artifact@v4
@@ -171,7 +109,6 @@ jobs:
           name: OpenRGB-1.1-AERO-RTX5060-source
           path: |
             OpenRGB-1.1-AERO-RTX5060-source.zip
-            OpenRGBEffectsPlugin-1.1-source.zip
             LICENSE
             THIRD_PARTY_NOTICES.md
           if-no-files-found: error
