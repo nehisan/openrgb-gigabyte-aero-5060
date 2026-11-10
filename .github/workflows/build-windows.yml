@@ -143,8 +143,19 @@ jobs:
         run: |
           windeployqt --no-patchqt --no-quick-import --no-translations --no-system-d3d-compiler --no-compiler-runtime --no-opengl-sw --no-network .\release\
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Copy-Item "$env:QT_ROOT_DIR\bin\Qt6Core5Compat.dll" ".\release\" -ErrorAction SilentlyContinue
-          Copy-Item "$env:QT_ROOT_DIR\bin\Qt6OpenGL.dll" ".\release\" -ErrorAction SilentlyContinue
+          $compatDll = Join-Path $env:QT_ROOT_DIR "bin\Qt6Core5Compat.dll"
+          if (-not (Test-Path $compatDll)) {
+            throw "Qt6Core5Compat.dll is missing from the Qt 6.8.3 qt5compat installation: $compatDll"
+          }
+          Copy-Item $compatDll ".\release\Qt6Core5Compat.dll" -Force
+          if (-not (Test-Path ".\release\Qt6Core5Compat.dll")) {
+            throw "Qt6Core5Compat.dll was not copied into the OpenRGB release folder"
+          }
+          Write-Host "Bundled Qt compatibility module: $((Get-Item '.\release\Qt6Core5Compat.dll').FullName)"
+          $openGlDll = Join-Path $env:QT_ROOT_DIR "bin\Qt6OpenGL.dll"
+          if (Test-Path $openGlDll) {
+            Copy-Item $openGlDll ".\release\Qt6OpenGL.dll" -Force
+          }
 
       - name: Package corresponding GPL source
         shell: pwsh
